@@ -41,6 +41,8 @@ dependencies(){
         pacman -Sy --noconfirm --needed wget curl p7zip
     elif [[ -f /etc/alpine-release ]]; then
         apk add wget curl p7zip
+    elif [[ -f /etc/gentoo-release ]]; then
+       emerge --nospinner --oneshot --noreplace  wget curl p7zip
     else
         printf "Your distro is not supported!\n"
         exit 1
@@ -105,13 +107,29 @@ burning(){
 
 # Install OpenCore to the target drive
 InstallOC(){
-    clear
+    clear    
     printf "Installing OpenCore to $drive...\n"
+    MOUNTPOINT="/mnt"
+    if [ "$(ls -A ${MOUNTPOINT})" ]; then    
+        NEWMOUNTPOINT=""
+        while [ -z $NEWMOUNTPOINT ]; do   
+            read -r -p "$(printf %s "The /mnt folder is not empty! Please type a folder name to be created in /mnt/ : ")" NNEWMOUNTPOINT
+                if     [ -z $NNEWMOUNTPOINT ]; then 
+                        printf "Please choose a name for the folder to be created (without / or path eg. 'usb')! \n"                   
+                else
+                        MOUNTFOLDER="${MOUNTPOINT}/${NNEWMOUNTPOINT}" 
+                        printf "Creating new mountpoint if it does not exist: ${MOUNTFOLDER}\n"
+                        mkdir -p ${MOUNTFOLDER}                 
+                        NEWMOUNTPOINT="${NNEWMOUNTPOINT}"
+                        MOUNTPOINT="${MOUNTFOLDER}"                    
+                fi
+        done
+    fi
     mkfs.fat -F32 -n OPENCORE "$drive"1
-    mount -t vfat "$drive"1 /mnt/ -o rw,umask=000; sleep 3s
-    cp -r ../../X64/EFI/ /mnt/
-    cp -r ../../Docs/Sample.plist /mnt/EFI/OC/
-    printf "OpenCore has been installed to $drive! Please open /mnt and edit OC for your machine!!\n"
+    mount -t vfat "$drive"1 ${MOUNTPOINT} -o rw,umask=000; sleep 3s
+    cp -r ../../X64/EFI/ ${MOUNTPOINT}
+    cp -r ../../Docs/Sample.plist ${MOUNTPOINT}/EFI/OC/
+    printf "OpenCore has been installed to $drive! Please open ${MOUNTPOINT} and edit OC for your machine!!\n"
 }
 
 # Main function that runs all the sub-functions
